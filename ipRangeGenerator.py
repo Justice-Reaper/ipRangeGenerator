@@ -5,20 +5,8 @@ import sys
 import argparse
 
 class CustomHelpFormatter(argparse.HelpFormatter):
-    def _format_action_invocation(self, action):
-        if not action.option_strings:
-            return super()._format_action_invocation(action)
-        
-        parts = []
-        # Add the option strings
-        parts.extend(action.option_strings)
-        
-        # If the action takes a value, add the metavar only to the usage, not here
-        if action.metavar is not None:
-            # Don't add metavar to the help display
-            pass
-            
-        return ', '.join(parts)
+    def _format_usage(self, usage, actions, groups, prefix):
+        return "usage: %(prog)s [-h] (-lr LOWER_RANGE -ur UPPER_RANGE | -cidr CIDR) [-o OUTPUT]\n" % dict(prog=self._prog)
 
 def generate_ip_range(start_ip, end_ip):
     def ip_to_number(ip):
@@ -93,28 +81,31 @@ def validate_ip(ip):
         return False
 
 def main():
-    parser = argparse.ArgumentParser(formatter_class=CustomHelpFormatter)
+    parser = argparse.ArgumentParser(formatter_class=CustomHelpFormatter, add_help=False)
+    
+    parser.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS,
+                      help='show this help message and exit')
     
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('-lr', '--lower-range', dest='ip_start', metavar='LOWER_RANGE',
+    group.add_argument('-lr', '--lower-range', dest='ip_start', metavar='',
                       help='Start IP of range (e.g., 192.168.1.1)')
-    group.add_argument('-cidr', metavar='CIDR',
+    group.add_argument('-cidr', metavar='',
                       help='CIDR notation (e.g., 192.168.1.0/24)')
     
-    parser.add_argument('-ur', '--upper-range', dest='ip_end', metavar='UPPER_RANGE',
+    parser.add_argument('-ur', '--upper-range', dest='ip_end', metavar='',
                       help='End IP of range (e.g., 192.168.1.100)')
-    parser.add_argument('-o', '--output', metavar='OUTPUT',
-                      help='Output filename (optional)')
+    
+    parser.add_argument('-o', '--output', metavar='',
+                      help='Output filename (e.g., ips.txt)')
     
     args = parser.parse_args()
+    
+    if args.ip_start and not args.ip_end:
+        parser.error("the following arguments are required: -ur/--upper-range")
     
     output_file = args.output if args.output else "generated_ips.txt"
     
     if args.ip_start:
-        if not args.ip_end:
-            print("[!] Error: When using -lr, you must also use -ur")
-            sys.exit(1)
-        
         ip_start = args.ip_start
         ip_end = args.ip_end
         
