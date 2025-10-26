@@ -4,6 +4,22 @@ from pwn import *
 import sys
 import argparse
 
+class CustomHelpFormatter(argparse.HelpFormatter):
+    def _format_action_invocation(self, action):
+        if not action.option_strings:
+            return super()._format_action_invocation(action)
+        
+        parts = []
+        # Add the option strings
+        parts.extend(action.option_strings)
+        
+        # If the action takes a value, add the metavar only to the usage, not here
+        if action.metavar is not None:
+            # Don't add metavar to the help display
+            pass
+            
+        return ', '.join(parts)
+
 def generate_ip_range(start_ip, end_ip):
     def ip_to_number(ip):
         parts = list(map(int, ip.split('.')))
@@ -77,14 +93,18 @@ def validate_ip(ip):
         return False
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(formatter_class=CustomHelpFormatter)
     
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('-lr', '--lower-range', dest='ip_start', help='Start IP of range (e.g., 192.168.1.1)')
-    group.add_argument('-cidr', help='CIDR notation (e.g., 192.168.1.0/24)')
+    group.add_argument('-lr', '--lower-range', dest='ip_start', metavar='LOWER_RANGE',
+                      help='Start IP of range (e.g., 192.168.1.1)')
+    group.add_argument('-cidr', metavar='CIDR',
+                      help='CIDR notation (e.g., 192.168.1.0/24)')
     
-    parser.add_argument('-ur', '--upper-range', dest='ip_end', help='End IP of range (e.g., 192.168.1.100)')
-    parser.add_argument('-o', '--output', help='Output filename (optional)')
+    parser.add_argument('-ur', '--upper-range', dest='ip_end', metavar='UPPER_RANGE',
+                      help='End IP of range (e.g., 192.168.1.100)')
+    parser.add_argument('-o', '--output', metavar='OUTPUT',
+                      help='Output filename (optional)')
     
     args = parser.parse_args()
     
