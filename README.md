@@ -1,6 +1,6 @@
 # IpRangeGenerator
 
-A powerful Python tool for calculating and generating IP address ranges
+A powerful Python tool for generating IP address ranges
 
 # Features
 - Support for CIDR notation and custom ranges
