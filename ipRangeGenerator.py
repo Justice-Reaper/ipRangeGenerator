@@ -29,11 +29,15 @@ def generate_ip_range(start_ip, end_ip):
         yield number_to_ip(ip_num) + '\n'
 
 def generate_ips_cidr(cidr_network):
+    if not cidr_network or '/' not in cidr_network:
+        print("[!] Error: Invalid CIDR format")
+        sys.exit(1)
+    
     try:
         ip, mask = cidr_network.split('/')
         mask = int(mask)
     except:
-        print("[!] Error: Invalid CIDR format. Use: IP/MASK (e.g., 192.168.1.0/24)")
+        print("[!] Error: Invalid CIDR format")
         sys.exit(1)
     
     if mask < 0 or mask > 32:
@@ -69,6 +73,8 @@ def generate_ips_cidr(cidr_network):
         yield number_to_ip(current_ip) + '\n'
 
 def validate_ip(ip):
+    if not ip or ip == '""' or ip == "''":
+        return False
     try:
         parts = ip.split('.')
         if len(parts) != 4:
@@ -77,6 +83,18 @@ def validate_ip(ip):
             if not 0 <= int(part) <= 255:
                 return False
         return True
+    except:
+        return False
+
+def validate_cidr(cidr):
+    if not cidr or cidr == '""' or cidr == "''":
+        return False
+    if '/' not in cidr:
+        return False
+    try:
+        ip, mask = cidr.split('/')
+        mask = int(mask)
+        return validate_ip(ip) and 0 <= mask <= 32
     except:
         return False
 
@@ -109,6 +127,14 @@ def main():
         ip_start = args.ip_start
         ip_end = args.ip_end
         
+        if not ip_start or ip_start.strip() in ['', '""', "''"]:
+            print("[!] Error: Start IP cannot be empty")
+            sys.exit(1)
+        
+        if not ip_end or ip_end.strip() in ['', '""', "''"]:
+            print("[!] Error: End IP cannot be empty")
+            sys.exit(1)
+        
         if not validate_ip(ip_start):
             print(f"[!] Error: Invalid start IP: {ip_start}")
             sys.exit(1)
@@ -135,15 +161,19 @@ def main():
     else:
         cidr_network = args.cidr
         
+        if not cidr_network or cidr_network.strip() in ['', '""', "''"]:
+            print("[!] Error: CIDR cannot be empty")
+            sys.exit(1)
+        
+        if not validate_cidr(cidr_network):
+            print(f"[!] Error: Invalid CIDR format: {cidr_network}")
+            sys.exit(1)
+        
         print(f"[+] Generating IPs for network {cidr_network}")
         print(f"[+] Output file: {output_file}")
         
         ip, mask = cidr_network.split('/')
         mask = int(mask)
-        
-        if not validate_ip(ip):
-            print(f"[!] Error: Invalid network IP: {ip}")
-            sys.exit(1)
         
         if mask == 32:
             total_ips = 1
