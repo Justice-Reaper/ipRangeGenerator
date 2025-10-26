@@ -1,4 +1,4 @@
-# IpRangeGenerator
+# ipRangeGenerator
 
 A powerful Python tool for generating IP address ranges
 
