@@ -30,9 +30,7 @@ options:
 # Usage
 
 ```
-git clone https://github.com/Justice-Reaper/ipRangeGenerator.git  
-cd ipRangeGenerator
-python ipRangeGenerator.py -cidr "127.0.0.1/8" -o ips.txt  
+# python ipRangeGenerator.py -cidr "127.0.0.1/8" -o ips.txt  
 [+] Generating IPs for network 127.0.0.1/8  
 [+] Output file: ips.txt  
 [+] Generating IPs: Completed! 16,777,214 IPs generated in ips.txt  
