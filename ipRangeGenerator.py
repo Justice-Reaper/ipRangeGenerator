@@ -3,6 +3,13 @@
 from pwn import *
 import sys
 import argparse
+import signal
+
+def signal_handler(sig, frame):
+    print("\n\n[!] Exiting ...\n")
+    sys.exit(1)
+
+signal.signal(signal.SIGINT, signal_handler)
 
 class CustomHelpFormatter(argparse.HelpFormatter):
     def _format_usage(self, usage, actions, groups, prefix):
