@@ -6,7 +6,7 @@ import argparse
 
 class CustomHelpFormatter(argparse.HelpFormatter):
     def _format_usage(self, usage, actions, groups, prefix):
-        return "usage: %(prog)s [-h] (-lr LOWER_RANGE -ur UPPER_RANGE | -cidr CIDR) [-o OUTPUT]\n" % dict(prog=self._prog)
+        return "usage: %(prog)s [-h] (-lr LOWER_RANGE -ur UPPER_RANGE | -lr LOWER_RANGE -r RANGE_COUNT | -cidr CIDR) [-o OUTPUT]\n" % dict(prog=self._prog)
 
 def generate_ip_range(start_ip, end_ip):
     def ip_to_number(ip):
@@ -24,6 +24,24 @@ def generate_ip_range(start_ip, end_ip):
         sys.exit(1)
     
     total_ips = end_num - start_num + 1
+    
+    for ip_num in range(start_num, end_num + 1):
+        yield number_to_ip(ip_num) + '\n'
+
+def generate_ips_from_count(start_ip, count):
+    def ip_to_number(ip):
+        parts = list(map(int, ip.split('.')))
+        return (parts[0] << 24) + (parts[1] << 16) + (parts[2] << 8) + parts[3]
+    
+    def number_to_ip(num):
+        return f"{(num >> 24) & 0xFF}.{(num >> 16) & 0xFF}.{(num >> 8) & 0xFF}.{num & 0xFF}"
+    
+    start_num = ip_to_number(start_ip)
+    end_num = start_num + count - 1
+    
+    if end_num > 0xFFFFFFFF:
+        print("[!] Error: IP range exceeds maximum possible IP address (255.255.255.255)")
+        sys.exit(1)
     
     for ip_num in range(start_num, end_num + 1):
         yield number_to_ip(ip_num) + '\n'
@@ -105,60 +123,34 @@ def main():
                       help='show this help message and exit')
     
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('-lr', '--lower-range', dest='ip_start', metavar='',
-                      help='Start IP of range (e.g., 192.168.1.1)')
     group.add_argument('-cidr', metavar='',
                       help='CIDR notation (e.g., 192.168.1.0/24)')
+    group.add_argument('-lr', '--lower-range', dest='ip_start', metavar='',
+                      help='Start IP of range (e.g., 192.168.1.1)')
     
     parser.add_argument('-ur', '--upper-range', dest='ip_end', metavar='',
                       help='End IP of range (e.g., 192.168.1.100)')
+    
+    parser.add_argument('-r', '--range-count', dest='range_count', type=int, metavar='',
+                      help='Number of IPs to generate from start IP (e.g., 520)')
     
     parser.add_argument('-o', '--output', metavar='',
                       help='Output filename (e.g., ips.txt)')
     
     args = parser.parse_args()
     
-    if args.ip_start and not args.ip_end:
-        parser.error("the following arguments are required: -ur/--upper-range")
+    if args.cidr and (args.ip_end or args.range_count):
+        parser.error("argument -cidr cannot be used with -ur or -r")
+    
+    if args.ip_start and not (args.ip_end or args.range_count):
+        parser.error("the following arguments are required: -ur/--upper-range OR -r/--range-count")
+    
+    if args.ip_end and args.range_count:
+        parser.error("arguments -ur/--upper-range and -r/--range-count are mutually exclusive")
     
     output_file = args.output if args.output else "generated_ips.txt"
     
-    if args.ip_start:
-        ip_start = args.ip_start
-        ip_end = args.ip_end
-        
-        if not ip_start or ip_start.strip() in ['', '""', "''"]:
-            print("[!] Error: Start IP cannot be empty")
-            sys.exit(1)
-        
-        if not ip_end or ip_end.strip() in ['', '""', "''"]:
-            print("[!] Error: End IP cannot be empty")
-            sys.exit(1)
-        
-        if not validate_ip(ip_start):
-            print(f"[!] Error: Invalid start IP: {ip_start}")
-            sys.exit(1)
-        
-        if not validate_ip(ip_end):
-            print(f"[!] Error: Invalid end IP: {ip_end}")
-            sys.exit(1)
-        
-        print(f"[+] Generating IPs from {ip_start} to {ip_end}")
-        print(f"[+] Output file: {output_file}")
-        
-        def calculate_total_ips(ip1, ip2):
-            def ip_to_number(ip):
-                parts = list(map(int, ip.split('.')))
-                return (parts[0] << 24) + (parts[1] << 16) + (parts[2] << 8) + parts[3]
-            
-            num1 = ip_to_number(ip1)
-            num2 = ip_to_number(ip2)
-            return abs(num2 - num1) + 1
-        
-        total_ips = calculate_total_ips(ip_start, ip_end)
-        generator = generate_ip_range(ip_start, ip_end)
-        
-    else:
+    if args.cidr:
         cidr_network = args.cidr
         
         if not cidr_network or cidr_network.strip() in ['', '""', "''"]:
@@ -183,6 +175,56 @@ def main():
             total_ips = (2 ** (32 - mask)) - 2
         
         generator = generate_ips_cidr(cidr_network)
+    
+    else:
+        ip_start = args.ip_start
+        
+        if not ip_start or ip_start.strip() in ['', '""', "''"]:
+            print("[!] Error: Start IP cannot be empty")
+            sys.exit(1)
+        
+        if not validate_ip(ip_start):
+            print(f"[!] Error: Invalid start IP: {ip_start}")
+            sys.exit(1)
+        
+        if args.ip_end:
+            ip_end = args.ip_end
+            
+            if not ip_end or ip_end.strip() in ['', '""', "''"]:
+                print("[!] Error: End IP cannot be empty")
+                sys.exit(1)
+            
+            if not validate_ip(ip_end):
+                print(f"[!] Error: Invalid end IP: {ip_end}")
+                sys.exit(1)
+            
+            print(f"[+] Generating IPs from {ip_start} to {ip_end}")
+            print(f"[+] Output file: {output_file}")
+            
+            def calculate_total_ips(ip1, ip2):
+                def ip_to_number(ip):
+                    parts = list(map(int, ip.split('.')))
+                    return (parts[0] << 24) + (parts[1] << 16) + (parts[2] << 8) + parts[3]
+                
+                num1 = ip_to_number(ip1)
+                num2 = ip_to_number(ip2)
+                return abs(num2 - num1) + 1
+            
+            total_ips = calculate_total_ips(ip_start, ip_end)
+            generator = generate_ip_range(ip_start, ip_end)
+            
+        else:
+            range_count = args.range_count
+            
+            if range_count <= 0:
+                print("[!] Error: Range count must be a positive integer")
+                sys.exit(1)
+            
+            print(f"[+] Generating {range_count:,} IPs starting from {ip_start}")
+            print(f"[+] Output file: {output_file}")
+            
+            total_ips = range_count
+            generator = generate_ips_from_count(ip_start, range_count)
     
     counter = 0
     
