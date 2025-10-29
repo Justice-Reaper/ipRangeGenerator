@@ -17,13 +17,14 @@ pip3 install pwn
 
 ```
 # python ipRangeGenerator.py -h
-usage: ipRangeGenerator.py [-h] (-lr LOWER_RANGE -ur UPPER_RANGE | -cidr CIDR) [-o OUTPUT]
+usage: ipRangeGenerator.py [-h] (-lr LOWER_RANGE -ur UPPER_RANGE | -lr LOWER_RANGE -r RANGE_COUNT | -cidr CIDR) [-o OUTPUT]
 
 options:
   -h, --help           show this help message and exit
-  -lr, --lower-range   Start IP of range (e.g., 192.168.1.1)
   -cidr                CIDR notation (e.g., 192.168.1.0/24)
+  -lr, --lower-range   Start IP of range (e.g., 192.168.1.1)
   -ur, --upper-range   End IP of range (e.g., 192.168.1.100)
+  -r, --range-count    Number of IPs to generate from start IP (e.g., 520)
   -o, --output         Output filename (e.g., ips.txt)
 ```
 
